@@ -131,12 +131,11 @@ function buildStudyPackPrompt(body) {
   const topic = body.topic || "Unknown topic";
   const difficulty = body.difficulty || "beginner";
   const material = body.material || "";
-  const quizStyle = body.quizStyle || "mixed";
 
   return `
 You are Knowvia, an AI study assistant.
 
-Create a COMPLETE structured study pack for:
+Create the CORE study pack for:
 
 TOPIC:
 ${topic}
@@ -144,154 +143,38 @@ ${topic}
 DIFFICULTY:
 ${difficulty}
 
-QUESTION STYLE:
-${quizStyle}
-
 ${sourceRules(material)}
 ${difficultyRules(difficulty)}
-
 ${commonRules(difficulty)}
 
-The study pack MUST contain these separate sections:
+Generate ONLY the core content needed for the main Study Pack.
+Do NOT generate practiceQuestions or examQuestions in this request; those are generated separately when the student opens Exam/Practice features.
 
-1. summary
-Give a clear topic overview suitable for the selected level.
+Required sections:
+1. summary — clear topic overview for the selected level.
+2. keyFeatures — 5 to 8 important features.
+3. types — useful types/categories; each has name, explanation, example.
+4. components — important parts; each has name and explanation.
+5. howItWorks — 5 to 8 steps where applicable.
+6. examples — 3 to 5 useful examples matching the selected difficulty.
+7. applications — 5 to 8 practical/real-world applications with brief explanations.
+8. advantages — 4 to 6.
+9. limitations — 3 to 6.
+10. importantPoints — 5 to 10 memorable points.
+11. commonMistakes — 3 to 6 mistakes and how to avoid them.
+12. examTips — 4 to 6 exam-focused points.
+13. flashcards — EXACTLY 10, each with question and answer.
+14. quiz — EXACTLY 10 MCQs. Each must contain question, options (4), correctAnswer (0-3), explanation, topic and skill. skill must be recall, understanding or application. Distribute skills.
 
-2. keyFeatures
-Give the most important characteristics/features.
-Return 5 to 8 items.
+Difficulty must change the actual knowledge depth, examples and reasoning — not just the wording.
 
-3. types
-Explain different types, categories or classifications if applicable.
-For each type give:
-- name
-- explanation
-- example
-
-4. components
-Explain important components/elements/parts.
-For each component give:
-- name
-- explanation
-
-5. howItWorks
-Explain the working/process step by step.
-Return 5 to 8 steps where applicable.
-
-6. examples
-Give 3 to 5 useful examples.
-Examples MUST match the selected difficulty.
-
-7. applications
-Give 5 to 8 practical or real-world applications.
-Explain briefly how the topic is used in each.
-
-8. advantages
-Give 4 to 6 advantages.
-
-9. limitations
-Give 3 to 6 limitations, disadvantages or challenges.
-
-10. importantPoints
-Give 5 to 10 points that a student should remember.
-
-11. commonMistakes
-Give 3 to 6 common student mistakes and how to avoid them.
-
-12. examTips
-Give 4 to 6 exam-focused points.
-
-13. flashcards
-Generate EXACTLY 10 flashcards.
-Each must contain:
-question
-answer
-
-14. quiz
-Generate EXACTLY 10 multiple-choice questions.
-
-Each quiz item MUST contain:
-question
-options
-correctAnswer
-explanation
-topic
-
-correctAnswer MUST be the zero-based option index:
-0, 1, 2 or 3.
-
-For each quiz item, skill MUST be exactly one of: "recall", "understanding", "application".
-Distribute the 10 questions across these skills rather than making every question recall-only.
-
-15. practiceQuestions
-Generate EXACTLY 5 questions.
-These should require applying the selected level of knowledge.
-
-16. examQuestions
-Generate EXACTLY 5 exam-oriented questions.
-Match the selected difficulty.
-
-For question style:
-- mixed = mix conceptual, application and analytical questions
-- mcq = focus practice questions around MCQ-style thinking
-- short = focus short-answer questions
-- exam = focus longer exam-oriented questions
-
-CONTENT DEPTH CHECK:
-- Beginner must be understandable to a student seeing the topic for the first time.
-- Intermediate must require connecting at least two concepts in several sections.
-- Advanced must require reasoning, trade-offs, edge cases or multi-step application where the topic allows.
-- Do not make levels different merely by changing wording. Change the ideas, examples and question reasoning.
-
-IMPORTANT DIFFERENCE BETWEEN LEVELS:
-
-BEGINNER:
-- basic definitions
-- simple features
-- simple types
-- easy examples
-- basic applications
-- straightforward questions
-
-INTERMEDIATE:
-- deeper explanations
-- how/why questions
-- comparisons
-- practical examples
-- application questions
-- moderate technical detail
-
-ADVANCED:
-- mechanisms
-- edge cases
-- assumptions
-- trade-offs
-- deeper applications
-- analytical reasoning
-- advanced examples
-- challenging questions
-
-Return ONLY valid JSON.
-
-Use exactly this structure:
-
+Return ONLY valid JSON in exactly this structure:
 {
   "difficultyLevel": "${difficulty}",
   "summary": "",
   "keyFeatures": [],
-  "types": [
-    {
-      "name": "",
-      "explanation": "",
-      "example": ""
-    }
-  ],
-  "components": [
-    {
-      "name": "",
-      "explanation": ""
-    }
-  ],
+  "types": [{"name":"","explanation":"","example":""}],
+  "components": [{"name":"","explanation":""}],
   "howItWorks": [],
   "examples": [],
   "applications": [],
@@ -300,22 +183,8 @@ Use exactly this structure:
   "importantPoints": [],
   "commonMistakes": [],
   "examTips": [],
-  "flashcards": [
-    {
-      "question": "",
-      "answer": ""
-    }
-  ],
-  "quiz": [
-    {
-      "question": "",
-      "options": ["", "", "", ""],
-      "correctAnswer": 0,
-      "explanation": "",
-      "topic": "",
-      "skill": "understanding"
-    }
-  ],
+  "flashcards": [{"question":"","answer":""}],
+  "quiz": [{"question":"","options":["","","",""],"correctAnswer":0,"explanation":"","topic":"","skill":"understanding"}],
   "practiceQuestions": [],
   "examQuestions": []
 }
@@ -330,19 +199,10 @@ async function askGemini(prompt, jsonMode = false) {
   }
 
   const requestBody = {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            text: prompt
-          }
-        ]
-      }
-    ],
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.55,
-      maxOutputTokens: 7000
+      temperature: 0.45,
+      maxOutputTokens: 5200
     }
   };
 
@@ -350,66 +210,94 @@ async function askGemini(prompt, jsonMode = false) {
     requestBody.generationConfig.responseMimeType = "application/json";
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 45000);
-  let response;
-  try {
-    response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
-      }
-    );
-  } catch (error) {
-    if (error?.name === "AbortError") {
-      throw new Error("AI generation timed out. Please try a shorter topic or smaller notes file.");
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
+  // Temporary Gemini overloads (429/500/503) are retried automatically.
+  // The request itself is also given enough time to finish, while keeping
+  // the payload smaller so it is less likely to hit serverless limits.
+  const maxAttempts = 3;
+  const retryDelays = [1200, 3000];
+  let lastError = null;
 
-  const text = await response.text();
-
-  if (!response.ok) {
-    let message = text;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
 
     try {
-      const errorData = JSON.parse(text);
-      message =
-        errorData?.error?.message ||
-        errorData?.message ||
-        text;
-    } catch {}
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal
+        }
+      );
 
-    throw new Error(message);
+      const text = await response.text();
+
+      if (!response.ok) {
+        let message = text;
+        try {
+          const errorData = JSON.parse(text);
+          message = errorData?.error?.message || errorData?.message || text;
+        } catch {}
+
+        const retryable = [429, 500, 502, 503, 504].includes(response.status);
+        if (retryable && attempt < maxAttempts - 1) {
+          lastError = new Error(message || `Gemini request failed (${response.status}).`);
+          await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+          continue;
+        }
+
+        if (response.status === 429 || response.status === 503) {
+          throw new Error("Gemini is temporarily busy. Knowvia tried again automatically, but the model is still under high demand. Please wait a minute and try again.");
+        }
+
+        throw new Error(message || `Gemini request failed (${response.status}).`);
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Gemini returned an invalid response.");
+      }
+
+      const answer = data?.candidates?.[0]?.content?.parts
+        ?.map(part => part.text || "")
+        .join("")
+        .trim();
+
+      if (!answer) {
+        throw new Error("Gemini returned an empty response.");
+      }
+
+      return answer;
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        lastError = new Error("AI generation took too long. Knowvia reduced the request, but the model did not finish in time. Please try again or use a shorter notes file.");
+        if (attempt < maxAttempts - 1) {
+          await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+          continue;
+        }
+        throw lastError;
+      }
+
+      // Do not hide validation/configuration errors. Retry only known transient failures.
+      if (attempt < maxAttempts - 1 && /temporarily|high demand|overloaded|unavailable|429|503/i.test(error?.message || "")) {
+        lastError = error;
+        await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+        continue;
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
-  let data;
-
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("Gemini returned an invalid response.");
-  }
-
-  const answer =
-    data?.candidates?.[0]?.content?.parts
-      ?.map(part => part.text || "")
-      .join("")
-      .trim();
-
-  if (!answer) {
-    throw new Error("Gemini returned an empty response.");
-  }
-
-  return answer;
+  throw lastError || new Error("Gemini request failed. Please try again.");
 }
 
 function extractJson(text) {
@@ -464,8 +352,7 @@ export default async function handler(req, res) {
       const prompt = buildStudyPackPrompt({
         topic: body.topic,
         difficulty,
-        material: body.material,
-        quizStyle: body.quizStyle
+        material: body.material
       });
 
       const raw = await askGemini(prompt, true);
