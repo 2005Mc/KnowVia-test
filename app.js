@@ -16,7 +16,7 @@ const state = {
   title: "",
 
   difficulty: "beginner",
-  questionStyle: "mixed",
+  questionStyle: "mcq",
 
   studyPack: null,
 
@@ -679,7 +679,7 @@ async function generateStudyPack() {
 
     state.questionStyle =
       questionStyleInput?.value ||
-      "mixed";
+      "mcq";
 
 
     /* -----------------------------------------
@@ -698,10 +698,7 @@ async function generateStudyPack() {
           source.material,
 
         difficulty:
-          state.difficulty,
-
-        quizStyle:
-          state.questionStyle
+          state.difficulty
 
       });
 
